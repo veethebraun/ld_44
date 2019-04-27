@@ -40,4 +40,3 @@ impl<'a, 'b> State<PausableGameData<'a, 'b>, StateEvent> for Paused {
         Trans::None
     }
 }
-

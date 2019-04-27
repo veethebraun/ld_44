@@ -2,7 +2,7 @@ use amethyst::{
     assets::{AssetStorage, Loader},
     audio::{output::Output, AudioSink, OggFormat, Source, SourceHandle},
     ecs::prelude::*,
-    shred::{Read, Resources, SystemData, ResourceId},
+    shred::{Read, ResourceId, Resources, SystemData},
 };
 
 use std::{iter::Cycle, vec::IntoIter};
@@ -25,7 +25,7 @@ pub struct Music {
 impl Default for Music {
     fn default() -> Self {
         Music {
-            music: vec![].into_iter().cycle()
+            music: vec![].into_iter().cycle(),
         }
     }
 }
@@ -47,13 +47,13 @@ pub fn initialise_audio(world: &mut World) {
         sink.set_volume(0.25); // Music is a bit loud, reduce the volume.
 
         let music = ();
-//        let music = AUDIO_MUSIC
-//            .iter()
-//            .map(|file| load_audio_track(&loader, &world, file))
-//            .collect::<Vec<_>>()
-//            .into_iter()
-//            .cycle();
-//        let music = Music { music };
+        //        let music = AUDIO_MUSIC
+        //            .iter()
+        //            .map(|file| load_audio_track(&loader, &world, file))
+        //            .collect::<Vec<_>>()
+        //            .into_iter()
+        //            .cycle();
+        //        let music = Music { music };
 
         let sound = Sounds {
             bounce_sfx: load_audio_track(&loader, &world, "sounds/Pickup_Coin8.ogg"),
@@ -74,7 +74,7 @@ pub fn play_bounce(audio_system_data: AudioSystemData) {
     let sounds = &audio_system_data.sounds;
     let storage = &audio_system_data.sources;
     let output = &audio_system_data.outputs;
-//                       sounds: &Sounds, storage: &AssetStorage<Source>, output: Option<&Output>) {
+    //                       sounds: &Sounds, storage: &AssetStorage<Source>, output: Option<&Output>) {
     if let Some(ref output) = output.as_ref() {
         if let Some(sound) = storage.get(&sounds.bounce_sfx) {
             output.play_once(sound, 1.0);
