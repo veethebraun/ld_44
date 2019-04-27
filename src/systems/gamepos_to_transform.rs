@@ -1,9 +1,8 @@
 pub struct GamePositionTransform;
 
-use amethyst::ecs::{Join, Read, ReadStorage, System, WriteStorage};
-use crate::game::{ARENA_WIDTH, ARENA_HEIGHT, GamePosition, Player};
+use crate::game::{GamePosition, Player, ARENA_HEIGHT, ARENA_WIDTH};
 use amethyst::core::Transform;
-
+use amethyst::ecs::{Join, Read, ReadStorage, System, WriteStorage};
 
 impl<'a> System<'a> for GamePositionTransform {
     type SystemData = (
@@ -13,13 +12,13 @@ impl<'a> System<'a> for GamePositionTransform {
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (game_poses, mut transforms, player_flag)  = data;
+        let (game_poses, mut transforms, player_flag) = data;
 
-        let mut camera = [ARENA_WIDTH/2., ARENA_HEIGHT/2.];
+        let mut camera = [ARENA_WIDTH / 2., ARENA_HEIGHT / 2.];
 
         for (_, game_pos) in (&player_flag, &game_poses).join() {
-            camera[0] = ARENA_WIDTH/2. - game_pos.0[0];
-            camera[1] = ARENA_HEIGHT/2. - game_pos.0[1];
+            camera[0] = ARENA_WIDTH / 2. - game_pos.0[0];
+            camera[1] = ARENA_HEIGHT / 2. - game_pos.0[1];
         }
 
         for (game_pos, transform) in (&game_poses, &mut transforms).join() {

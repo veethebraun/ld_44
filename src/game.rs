@@ -1,18 +1,19 @@
 use crate::pausable_game_data::PausableGameData;
 use amethyst::assets::{AssetStorage, Loader};
+use amethyst::core::nalgebra::{Point2, Vector2};
 use amethyst::core::transform::Transform;
-use amethyst::ecs::prelude::{Component, DenseVecStorage, NullStorage};
+use amethyst::ecs::prelude::{Component, DenseVecStorage, NullStorage, VecStorage, Entity};
 use amethyst::input::{is_close_requested, is_key_down};
 use amethyst::prelude::*;
 use amethyst::renderer::{
     Camera, Flipped, PngFormat, Projection, SpriteRender, SpriteSheet, SpriteSheetFormat,
-    SpriteSheetHandle, Texture, TextureMetadata, VirtualKeyCode,Transparent,
+    SpriteSheetHandle, Texture, TextureMetadata, Transparent, VirtualKeyCode,
 };
-use amethyst::core::nalgebra::{Vector2, Point2};
-use itertools::{Itertools, iproduct};
+use itertools::{iproduct, Itertools};
 
 use crate::audio::{initialise_audio, Music};
 use crate::pause_screen::Paused;
+use std::time::Duration;
 
 pub const ARENA_HEIGHT: f32 = 768.0;
 pub const ARENA_WIDTH: f32 = 1366.0;
@@ -24,11 +25,14 @@ impl<'a, 'b> State<PausableGameData<'a, 'b>, StateEvent> for Game {
 
         world.add_resource::<Music>(Default::default());
         world.register::<Player>();
+        world.register::<EnemyFlag>();
+        world.register::<TimeLeft>();
         // Init Stuff
         let sprite_sheet = load_sprite_sheet(world);
         init_player(world, sprite_sheet.clone());
         initialise_camera(world);
         init_game_map(world, sprite_sheet.clone());
+        init_enemy(world, sprite_sheet.clone());
     }
 
     fn handle_event(
@@ -62,15 +66,31 @@ impl<'a, 'b> State<PausableGameData<'a, 'b>, StateEvent> for Game {
 #[storage(NullStorage)]
 pub struct Player;
 
-#[derive(Component, Debug)]
+#[derive(Default)]
+pub struct PlayerEntity(pub Option<Entity>);
+
+#[derive(Component, Debug, Clone, Copy)]
 #[storage(DenseVecStorage)]
-pub struct GamePosition(pub [f32;2]);
+pub struct GamePosition(pub [f32; 2]);
+
+impl GamePosition {
+    pub fn to_tile(&self) -> (usize, usize) {
+        (
+            (self.0[0] / TILE_SIZE as f32) as usize,
+            (self.0[1] / TILE_SIZE as f32) as usize,
+        )
+    }
+
+    pub fn from_tile((x, y): (usize, usize)) -> Self {
+        let x_gpos = (x as f32) * TILE_SIZE as f32;
+        let y_gpos = (y as f32) * TILE_SIZE as f32;
+        Self([x_gpos, y_gpos])
+    }
+}
 
 impl Default for GamePosition {
     fn default() -> Self {
-        GamePosition(
-            [0., 0.]
-        )
+        GamePosition([0., 0.])
     }
 }
 
@@ -125,23 +145,27 @@ fn init_player(world: &mut World, sprite_sheet: SpriteSheetHandle) {
 
     let transform = Transform::default();
 
-    let mut game_pos: GamePosition = Default::default();
+    let mut game_pos = GamePosition::from_tile((5, 5)); //TODO: Start according to map
 
     // Create a left plank entity.
-    world
+    let ent = world
         .create_entity()
         .with(Player)
         .with(game_pos)
         .with(transform)
         .with(sprite_render.clone())
         .with(Transparent)
+        .with(CollisionDetectionFlag([45., 45.]))
+        .with(TimeLeft(Duration::from_secs(180)))
         .build();
+
+    world.add_resource(PlayerEntity(Some(ent)));
 
     // Create right plank entity.
 }
 
-#[derive(Debug,Clone,Copy,PartialEq)]
-pub enum GameMapTile{
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GameMapTile {
     Wall,
     Floor,
     Nothing,
@@ -153,30 +177,27 @@ impl Default for GameMapTile {
     }
 }
 
-
 pub const GAME_MAP_X: usize = 20;
 pub const GAME_MAP_Y: usize = 12;
-pub const TILE_SIZE: u32 =  60;
+pub const TILE_SIZE: u32 = 60;
 
-#[derive(Debug, )]
+#[derive(Debug, Default)]
 pub struct GameMap(pub [[GameMapTile; GAME_MAP_Y]; GAME_MAP_X]);
 
 fn init_game_map(world: &mut World, sprite_sheet: SpriteSheetHandle) {
-
-    let map =
-        "WWWWWWWWWWWWWWWWWWWWW\n\
-         WFFFFFFFFFFFFFFFFFFFF\n\
-         WFFFFFFFFFFFFFFFFFFFF";
+    let map = "WWWWWWWWWWWWWWWWWWWWW\n\
+               WFFFFFFFFFFFFFFFFFFFF\n\
+               WFFFFFFFFFFFFFFFFFFFF";
 
     let mut truemap = GameMap([[GameMapTile::Floor; GAME_MAP_Y]; GAME_MAP_X]);
     for x in 0..GAME_MAP_X {
         truemap.0[x][0] = GameMapTile::Wall;
-        truemap.0[x][GAME_MAP_Y-1] = GameMapTile::Wall;
+        truemap.0[x][GAME_MAP_Y - 1] = GameMapTile::Wall;
     }
 
     for y in 0..GAME_MAP_Y {
         truemap.0[0][y] = GameMapTile::Wall;
-        truemap.0[GAME_MAP_X-1][y] = GameMapTile::Wall;
+        truemap.0[GAME_MAP_X - 1][y] = GameMapTile::Wall;
     }
 
     let sprite_wall = SpriteRender {
@@ -190,15 +211,11 @@ fn init_game_map(world: &mut World, sprite_sheet: SpriteSheetHandle) {
     };
 
     for (x, y) in iproduct!(0..GAME_MAP_X, 0..GAME_MAP_Y) {
-        let x_gpos = (x as f32 - GAME_MAP_X as f32/2.)*TILE_SIZE as f32;
-        let y_gpos = (y as f32 - GAME_MAP_Y as f32/2.)*TILE_SIZE as f32;
-
-        let game_pos = GamePosition([x_gpos, y_gpos]);
-        warn!("{:?}, {:?}, {:?}", x, y, game_pos);
+        let game_pos = GamePosition::from_tile((x, y));
         let mut transform = Transform::default();
         transform.set_z(-1.0);
 
-        let sprite = match truemap.0[x][y]{
+        let sprite = match truemap.0[x][y] {
             GameMapTile::Wall => sprite_wall.clone(),
             GameMapTile::Floor => sprite_floor.clone(),
             _ => sprite_floor.clone(),
@@ -212,5 +229,50 @@ fn init_game_map(world: &mut World, sprite_sheet: SpriteSheetHandle) {
             .build();
     }
 
-    info!("{:?}", truemap);
+    world.add_resource(truemap);
+}
+
+#[derive(Component, Default, Clone, Copy)]
+#[storage(DenseVecStorage)]
+pub struct CollisionDetectionFlag(pub [f32; 2]);
+
+#[derive(Component, Default, Debug)]
+#[storage(VecStorage)]
+pub struct TimeLeft(pub Duration);
+
+impl TimeLeft {
+    pub fn subtract(&mut self, time: Duration) {
+        if self.0 > time {
+            self.0 -= time;
+        } else {
+            self.0 = Duration::from_secs(0);
+        }
+    }
+}
+
+#[derive(Component, Default)]
+#[storage(NullStorage)]
+pub struct EnemyFlag;
+
+fn init_enemy(world: &mut World, sprite_sheet: SpriteSheetHandle) {
+    let sprite_render = SpriteRender {
+        sprite_sheet: sprite_sheet.clone(),
+        sprite_number: 0, // paddle is the first sprite in the sprite_sheet
+    };
+
+    let mut transform = Transform::default();
+    transform.set_z(-0.5);
+
+    let mut game_pos = GamePosition::from_tile((15, 8)); //TODO: Start according to map
+
+    world
+        .create_entity()
+        .with(EnemyFlag)
+        .with(game_pos)
+        .with(transform)
+        .with(sprite_render.clone())
+        .with(Transparent)
+        .with(CollisionDetectionFlag([45., 45.]))
+        .with(TimeLeft(Duration::from_secs(30)))
+        .build();
 }

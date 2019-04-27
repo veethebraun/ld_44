@@ -9,7 +9,9 @@ extern crate log;
 use amethyst::audio::AudioBundle;
 use amethyst::core::transform::TransformBundle;
 use amethyst::prelude::*;
-use amethyst::renderer::{DisplayConfig, DrawFlat2D, Pipeline, RenderBundle, Stage, ColorMask, ALPHA, DepthMode};
+use amethyst::renderer::{
+    ColorMask, DepthMode, DisplayConfig, DrawFlat2D, Pipeline, RenderBundle, Stage, ALPHA,
+};
 use amethyst::ui::UiBundle;
 
 mod game;
@@ -31,7 +33,7 @@ fn main() -> amethyst::Result<()> {
 
     let pipe = Pipeline::build().with_stage(
         Stage::with_backbuffer()
-//            .clear_target([0.137, 0.068, 0.137, 1.0], 10.0)
+            //            .clear_target([0.137, 0.068, 0.137, 1.0], 10.0)
             .clear_target([0.068, 0.034, 0.068, 1.0], 10.0)
             .with_pass(DrawFlat2D::new().with_transparency(
                 ColorMask::all(),
@@ -56,6 +58,9 @@ fn main() -> amethyst::Result<()> {
         .with_base_bundle(UiBundle::<String, String>::new())?
         .with_running(systems::MovePlayerSystem, "move_player", &["input_system"])
         .with_running(systems::GamePositionTransform, "gamepos_transform", &["move_player"])
+        .with_running(systems::MoveBadGuys,"move_bad_guys", &["move_player"])
+        .with_running(systems::PlayerBadGuyCollide, "collide_bad_guys", &["move_bad_guys"])
+        .with_running(systems::DecrementTime, "decrement_time", &[])
 //        .with_running(systems::PaddleSystem, "paddle_system", &["input_system"])
 //        .with_running(systems::MoveBallSystem, "move_ball", &[])
 //        .with_running(systems::SoundFxSystem, "sound_fx", &["input_system"]);
