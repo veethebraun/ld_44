@@ -64,10 +64,10 @@ impl<'a> System<'a> for PlayerShoot {
                 _ => ShootDirection::None,
             };
             if shoot_direction != ShootDirection::None {
-                player_shooter.current_cooldown = player_shooter.shoot_rate.clone();
+                player_shooter.set_cooldown();
                 let sprite_render = SpriteRender {
                     sprite_sheet: sprite_sheet.0.clone().unwrap(),
-                    sprite_number: 4, // paddle is the first sprite in the sprite_sheet
+                    sprite_number: 15, // paddle is the first sprite in the sprite_sheet
                 };
 
                 let game_pos = player_pos.clone();
@@ -208,7 +208,7 @@ impl<'a> System<'a> for CheckBulletCollide {
                 if check_collision(*bullet_pos, *bullet_coll, *enem_pos, *enem_coll) {
                     entities.delete(ent).unwrap();
 
-                    health.subtract(Duration::from_secs(15));
+                    health.subtract(Duration::from_secs(player.damage));
                 }
             }
 
@@ -269,10 +269,10 @@ impl<'a> System<'a> for EnemyShoot {
 
         for (_, enemy_pos, shooter) in (&enemy_store, &game_poses, &mut shooter_store).join() {
             if shooter.current_cooldown == Duration::from_secs(0) {
-                shooter.current_cooldown = shooter.shoot_rate.clone();
+                shooter.set_cooldown();
                 let sprite_render = SpriteRender {
                     sprite_sheet: sprite_sheet.0.clone().unwrap(),
-                    sprite_number: 4, // paddle is the first sprite in the sprite_sheet
+                    sprite_number: 10, // paddle is the first sprite in the sprite_sheet
                 };
 
                 let game_pos = enemy_pos.clone();

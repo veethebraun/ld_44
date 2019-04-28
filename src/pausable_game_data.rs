@@ -5,6 +5,9 @@ use amethyst::{DataInit, Error, Result};
 pub struct PausableGameData<'a, 'b> {
     core_dispatcher: Dispatcher<'a, 'b>,
     running_dispatcher: Dispatcher<'a, 'b>,
+
+    pub game_over: bool,
+    pub floors_cleared: u32,
 }
 
 impl<'a, 'b> PausableGameData<'a, 'b> {
@@ -76,6 +79,8 @@ impl<'a, 'b> DataInit<PausableGameData<'a, 'b>> for PausableGameDataBuilder<'a, 
         PausableGameData {
             core_dispatcher,
             running_dispatcher,
+            floors_cleared: 0,
+            game_over: false,
         }
     }
 }

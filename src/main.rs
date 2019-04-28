@@ -21,9 +21,12 @@ mod pausable_game_data;
 use pausable_game_data::PausableGameDataBuilder;
 mod audio;
 mod pause_screen;
+mod game_over_screen;
 use audio::Music;
+#[rustfmt::skip]
 mod maps;
 mod systems;
+mod game_scale;
 
 fn main() -> amethyst::Result<()> {
     amethyst::start_logger(Default::default());
@@ -35,7 +38,7 @@ fn main() -> amethyst::Result<()> {
     let pipe = Pipeline::build().with_stage(
         Stage::with_backbuffer()
             //            .clear_target([0.137, 0.068, 0.137, 1.0], 10.0)
-            .clear_target([0.068, 0.034, 0.068, 1.0], 10.0)
+            .clear_target([0.0, 0.0, 0.0, 1.0], 10.0)
             .with_pass(DrawFlat2D::new().with_transparency(
                 ColorMask::all(),
                 ALPHA,
@@ -69,6 +72,10 @@ fn main() -> amethyst::Result<()> {
         .with_running(systems::CheckBulletCollide, "bullet_collid", &["move_bullets"])
         .with_running(systems::RemoveOutOfTimeBadGuys, "kill_baddies", &["bullet_collid","decrement_time"])
         .with_running(systems::CheckForNextRoom, "next_room", &["kill_baddies"])
+        .with_running(systems::UpdateTimer, "ui_timer", &["enemy_shoot", "decrement_time"])
+        .with_running(systems::CreatePowerUps, "create_powerups", &["kill_baddies"])
+        .with_running(systems::PickupItem, "pickup_items", &["move_player","player_shoot"])
+        .with_running(systems::AnimateSprites, "animate_sprites", &["decrement_time"])
 //        .with_running(systems::PaddleSystem, "paddle_system", &["input_system"])
 //        .with_running(systems::MoveBallSystem, "move_ball", &[])
 //        .with_running(systems::SoundFxSystem, "sound_fx", &["input_system"]);

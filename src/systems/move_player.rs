@@ -23,14 +23,14 @@ impl<'a> System<'a> for MovePlayerSystem {
             let x_movement = input.axis_value("player_leftright");
             let y_movement = input.axis_value("player_updown");
             if let Some(mv_amount) = y_movement {
-                let scaled_amount = 5.2 * mv_amount as f32;
+                let scaled_amount = player.speed_multi * mv_amount as f32;
                 let player_y = game_pos.0[1];
 
                 let moved = try_move(game_pos, 1, scaled_amount, &game_map, coll_flag);
                 player.speed[1] = moved;
             }
             if let Some(mv_amount) = x_movement {
-                let scaled_amount = 5.2 * mv_amount as f32;
+                let scaled_amount = player.speed_multi * mv_amount as f32;
                 let moved = try_move(game_pos, 0, scaled_amount, &game_map, coll_flag);
                 player.speed[0] = moved;
             }
@@ -105,8 +105,10 @@ impl<'a> System<'a> for MoveBadGuys {
             let pos_diff = [player_pos.0[0] - pos.0[0], player_pos.0[1] - pos.0[1]];
             let r = (pos_diff[0] * pos_diff[0] + pos_diff[1] * pos_diff[1]).sqrt();
 
-            try_move(pos, 0, 2. * pos_diff[0] / r, &game_map, coll_flag);
-            try_move(pos, 1, 2. * pos_diff[1] / r, &game_map, coll_flag);
+            let speed = 2.;
+
+            try_move(pos, 0, speed * pos_diff[0] / r, &game_map, coll_flag);
+            try_move(pos, 1, speed * pos_diff[1] / r, &game_map, coll_flag);
         }
     }
 }

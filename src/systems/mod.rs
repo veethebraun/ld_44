@@ -11,4 +11,8 @@ pub use self::shoot::{
     CheckBulletCollide, DecrementPlayerCoolDowns, EnemyShoot, MoveBullets, PlayerShoot,
 };
 mod check_next_room;
-pub use self::check_next_room::CheckForNextRoom;
+pub use self::check_next_room::{CheckForNextRoom, CreatePowerUps, PickupItem};
+mod ui_stuff;
+pub use self::ui_stuff::UpdateTimer;
+mod animation;
+pub use self::animation::AnimateSprites;
