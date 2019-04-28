@@ -5,6 +5,8 @@ use amethyst::{
     shred::{Read, ResourceId, Resources, SystemData},
 };
 
+pub const AUDIO_MUSIC: &[&str] =  &["sounds/ld44_musac.ogg"];
+
 use std::{iter::Cycle, vec::IntoIter};
 
 pub struct AudioSystemData<'s> {
@@ -15,7 +17,11 @@ pub struct AudioSystemData<'s> {
 
 pub struct Sounds {
     //pub score_sfx: SourceHandle,
-    pub bounce_sfx: SourceHandle,
+    pub player_shoot: SourceHandle,
+    pub enemy_shoot: SourceHandle,
+    pub enemy_die: SourceHandle,
+    pub player_hit: SourceHandle,
+    pub enemy_hit: SourceHandle,
 }
 
 pub struct Music {
@@ -40,23 +46,27 @@ fn load_audio_track(loader: &Loader, world: &World, file: &str) -> SourceHandle 
 pub fn initialise_audio(world: &mut World) {
     //use crate::{AUDIO_BOUNCE, AUDIO_MUSIC, AUDIO_SCORE};
 
-    let (sound_effects, _music) = {
+    let (sound_effects, music) = {
         let loader = world.read_resource::<Loader>();
 
         let mut sink = world.write_resource::<AudioSink>();
         sink.set_volume(0.25); // Music is a bit loud, reduce the volume.
 
-        let music = ();
-        //        let music = AUDIO_MUSIC
-        //            .iter()
-        //            .map(|file| load_audio_track(&loader, &world, file))
-        //            .collect::<Vec<_>>()
-        //            .into_iter()
-        //            .cycle();
-        //        let music = Music { music };
+//        let music = ();
+                let music = AUDIO_MUSIC
+                    .iter()
+                    .map(|file| load_audio_track(&loader, &world, file))
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .cycle();
+                let music = Music { music };
 
         let sound = Sounds {
-            bounce_sfx: load_audio_track(&loader, &world, "sounds/Pickup_Coin8.ogg"),
+            player_shoot: load_audio_track(&loader, &world, "sounds/tic.ogg"),
+            enemy_shoot:  load_audio_track(&loader, &world, "sounds/toc.ogg"),
+            player_hit:  load_audio_track(&loader, &world, "sounds/player_hitt.ogg"),
+            enemy_die:  load_audio_track(&loader, &world, "sounds/enemy_hit.ogg"),
+            enemy_hit:  load_audio_track(&loader, &world, "sounds/enemy_r_hit.ogg"),
             //score_sfx: load_audio_track(&loader, &world, AUDIO_SCORE),
         };
 
@@ -66,18 +76,70 @@ pub fn initialise_audio(world: &mut World) {
     // Add sound effects to the world. We have to do this in another scope because
     // world won't let us insert new resources as long as `Loader` is borrowed.
     world.add_resource(sound_effects);
-    //world.add_resource(music);
+    world.add_resource(music);
 }
 
 /// Plays the bounce sound when a ball hits a side or a paddle.
-pub fn play_bounce(audio_system_data: AudioSystemData) {
+pub fn play_player_shoot(audio_system_data: &AudioSystemData) {
     let sounds = &audio_system_data.sounds;
     let storage = &audio_system_data.sources;
     let output = &audio_system_data.outputs;
     //                       sounds: &Sounds, storage: &AssetStorage<Source>, output: Option<&Output>) {
     if let Some(ref output) = output.as_ref() {
-        if let Some(sound) = storage.get(&sounds.bounce_sfx) {
-            output.play_once(sound, 1.0);
+        if let Some(sound) = storage.get(&sounds.player_shoot) {
+            output.play_once(sound, 0.2);
+        }
+    }
+}
+
+/// Plays the bounce sound when a ball hits a side or a paddle.
+pub fn play_enemy_die(audio_system_data: &AudioSystemData) {
+    let sounds = &audio_system_data.sounds;
+    let storage = &audio_system_data.sources;
+    let output = &audio_system_data.outputs;
+    //                       sounds: &Sounds, storage: &AssetStorage<Source>, output: Option<&Output>) {
+    if let Some(ref output) = output.as_ref() {
+        if let Some(sound) = storage.get(&sounds.enemy_die) {
+            output.play_once(sound, 0.2);
+        }
+    }
+}
+
+/// Plays the bounce sound when a ball hits a side or a paddle.
+pub fn play_player_hit(audio_system_data: &AudioSystemData) {
+    let sounds = &audio_system_data.sounds;
+    let storage = &audio_system_data.sources;
+    let output = &audio_system_data.outputs;
+    //                       sounds: &Sounds, storage: &AssetStorage<Source>, output: Option<&Output>) {
+    if let Some(ref output) = output.as_ref() {
+        if let Some(sound) = storage.get(&sounds.player_hit) {
+            output.play_once(sound, 0.5);
+        }
+    }
+}
+
+/// Plays the bounce sound when a ball hits a side or a paddle.
+pub fn play_enemy_hit(audio_system_data: &AudioSystemData) {
+    let sounds = &audio_system_data.sounds;
+    let storage = &audio_system_data.sources;
+    let output = &audio_system_data.outputs;
+    //                       sounds: &Sounds, storage: &AssetStorage<Source>, output: Option<&Output>) {
+    if let Some(ref output) = output.as_ref() {
+        if let Some(sound) = storage.get(&sounds.enemy_hit) {
+            output.play_once(sound, 0.5);
+        }
+    }
+}
+
+/// Plays the bounce sound when a ball hits a side or a paddle.
+pub fn play_enemy_shoot(audio_system_data: &AudioSystemData) {
+    let sounds = &audio_system_data.sounds;
+    let storage = &audio_system_data.sources;
+    let output = &audio_system_data.outputs;
+    //                       sounds: &Sounds, storage: &AssetStorage<Source>, output: Option<&Output>) {
+    if let Some(ref output) = output.as_ref() {
+        if let Some(sound) = storage.get(&sounds.enemy_shoot) {
+            output.play_once(sound, 0.2);
         }
     }
 }

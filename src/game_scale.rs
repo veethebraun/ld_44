@@ -7,10 +7,7 @@
 
 
 
-use rand::{
-    thread_rng,
-    distributions::{Distribution, Poisson}
-};
+use rand::{thread_rng, distributions::{Distribution, Poisson}, Rng};
 
 use crate::game::Enemies;
 
@@ -20,7 +17,17 @@ pub fn gen_enemy_list(floor: u32) -> Vec<Enemies> {
 
     let mut out = Vec::new();
     for _ in 0..num_enemies {
-       out.push(Enemies::Full)
+        let enemy_type = {
+            if rng.gen_bool(0.35) {
+                Enemies::Stationary
+            } else if rng.gen_bool(0.35) {
+                Enemies::NoShoot
+            } else {
+                Enemies::Full
+            }
+        };
+
+       out.push(enemy_type)
     }
     out
 }

@@ -16,6 +16,7 @@ use crate::systems::player_bad_guy_collide::check_collision;
 use amethyst::assets::AssetStorage;
 use amethyst::ecs::Builder;
 use amethyst::renderer::{SpriteRender, SpriteSheetHandle};
+use crate::audio::{AudioSystemData, play_enemy_shoot, play_player_shoot, play_player_hit, play_enemy_hit};
 
 impl<'a> System<'a> for PlayerShoot {
     type SystemData = (
@@ -27,6 +28,7 @@ impl<'a> System<'a> for PlayerShoot {
         Read<'a, LoadedSpriteSheet>,
         Entities<'a>,
         WriteStorage<'a, Shooter>,
+        AudioSystemData<'a>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -39,6 +41,7 @@ impl<'a> System<'a> for PlayerShoot {
             sprite_sheet,
             entities,
             mut shooter_store,
+            audio,
         ) = data;
         //        let (game_poses, coll_flags, player_flag, player_ent, input, lazy) = data;
 
@@ -104,6 +107,8 @@ impl<'a> System<'a> for PlayerShoot {
                     .with(PlayerBullet)
                     .with(CollisionDetectionFlag([10., 10.]))
                     .build();
+
+                play_player_shoot(&audio);
             }
         }
     }
@@ -171,6 +176,7 @@ impl<'a> System<'a> for CheckBulletCollide {
         ReadStorage<'a, WallFlag>,
         ReadStorage<'a, PlayerBullet>,
         ReadStorage<'a, EnemyBullet>,
+        AudioSystemData<'a>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -187,6 +193,7 @@ impl<'a> System<'a> for CheckBulletCollide {
             wall_flag,
             player_bullet_flag,
             enemy_bullet_flag,
+            audio,
         ) = data;
 
         let player = player_flag.get_mut(player_ent.0.unwrap()).unwrap();
@@ -207,6 +214,7 @@ impl<'a> System<'a> for CheckBulletCollide {
             {
                 if check_collision(*bullet_pos, *bullet_coll, *enem_pos, *enem_coll) {
                     entities.delete(ent).unwrap();
+                    play_enemy_hit(&audio);
 
                     health.subtract(Duration::from_secs(player.damage));
                 }
@@ -234,6 +242,7 @@ impl<'a> System<'a> for CheckBulletCollide {
                 entities.delete(ent).unwrap();
 
                 if player.invincible_time == Duration::from_secs(0) {
+                    play_player_hit(&audio);
                     player_time.subtract(Duration::from_secs(15));
                     player.invincible_time = Duration::from_secs(1);
                 }
@@ -259,10 +268,11 @@ impl<'a> System<'a> for EnemyShoot {
         WriteStorage<'a, Shooter>,
         ReadStorage<'a, EnemyFlag>,
         Entities<'a>,
+        AudioSystemData<'a>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (game_poses, player_ent, lazy, sprite_sheet, mut shooter_store, enemy_store, entities) =
+        let (game_poses, player_ent, lazy, sprite_sheet, mut shooter_store, enemy_store, entities, audio) =
             data;
 
         let player_pos = game_poses.get(player_ent.0.unwrap()).unwrap().clone();
@@ -298,6 +308,8 @@ impl<'a> System<'a> for EnemyShoot {
                     .with(EnemyBullet)
                     .with(CollisionDetectionFlag([10., 10.]))
                     .build();
+
+                play_enemy_shoot(&audio);
             }
         }
     }

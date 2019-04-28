@@ -28,6 +28,7 @@ use std::time::Duration;
 use crate::game_scale::{gen_enemy_list, get_enemy_time, get_enemy_bullet_speed};
 use std::iter::{Cycle, Iterator};
 use std::slice::Iter;
+use crate::maps::game_map_tiles;
 
 pub const ARENA_HEIGHT: f32 = 768.0;
 pub const ARENA_WIDTH: f32 = 1366.0;
@@ -57,6 +58,7 @@ impl<'a, 'b> State<PausableGameData<'a, 'b>, StateEvent> for Game {
         initialise_camera(world);
         init_enemy(world, sprite_sheet.clone());
         init_ui(world);
+        initialise_audio(world);
     }
 
     fn handle_event(
@@ -119,10 +121,10 @@ impl Player {
     pub fn apply_item(&mut self, item: &Item) {
         match item.kind {
             ItemType::PowerUp(PowerUps::Damage) => {
-                self.damage += 5;
+                self.damage += 10;
             }
             ItemType::PowerUp(PowerUps::Speed) => {
-                self.speed_multi += 3. / self.speed_multi;
+                self.speed_multi += 1.0;
                 warn!("New speed: {:?}", self.speed_multi);
             }
             _ => (),
@@ -238,7 +240,7 @@ pub struct Shooter {
     upgrades: usize,
 }
 
-const SHOOTER_UPGRADES_MS: [u64; 11] = [200, 100, 100, 50, 50, 50, 50, 50, 25, 25, 25];
+const SHOOTER_UPGRADES_MS: [u64; 11] = [200, 200, 100, 100, 100, 50, 50, 50, 25, 25, 25];
 
 impl Shooter {
     pub fn new(rate: u64, speed: f32) -> Self {
@@ -263,7 +265,7 @@ impl Shooter {
                 }
             }
             ItemType::PowerUp(PowerUps::ProjectileSpeed) => {
-                self.speed += 2. / self.speed.sqrt();
+                self.speed += 2.;
             }
             _ => (),
         };
@@ -378,10 +380,22 @@ fn init_game_map(world: &mut World, sprite_sheet: SpriteSheetHandle) {
 
         match truemap.map[x][y] {
             GameMapTile::Wall => {
+
+                let (s_num, flip) = dbg!(get_wall_sprite_num((x,y), &truemap));
+
+                let sprite = SpriteRender {
+                    sprite_sheet: sprite_sheet.clone(),
+                    sprite_number: s_num, // paddle is the first sprite in the sprite_sheet
+                };
+
                 builder = builder
-                    .with(sprite_wall.clone())
+                    .with(sprite.clone())
                     .with(CollisionDetectionFlag([60.0, 60.0]))
                     .with(WallFlag);
+
+                if flip {
+                    builder = builder.with(Flipped::Horizontal);
+                }
             }
             GameMapTile::Floor => {
                 builder = builder.with(sprite_floor.clone());
@@ -499,7 +513,7 @@ fn init_enemy(world: &mut World, sprite_sheet: SpriteSheetHandle) {
 
     world
         .create_entity()
-        .with(EnemyFlag::new_stationary())
+        .with(EnemyFlag::default())
         .with(game_pos)
         .with(transform)
         .with(sprite_render.clone())
@@ -580,10 +594,21 @@ pub fn start_new_level(
 
         match gamemap.map[x][y] {
             GameMapTile::Wall => {
+                let (s_num, flip) = dbg!(get_wall_sprite_num((x,y), &gamemap));
+
+                let sprite = SpriteRender {
+                    sprite_sheet: sprite_sheet.0.clone().unwrap(),
+                    sprite_number: s_num, // paddle is the first sprite in the sprite_sheet
+                };
+
                 builder = builder
-                    .with(sprite_wall.clone())
+                    .with(sprite.clone())
                     .with(CollisionDetectionFlag([60.0, 60.0]))
                     .with(WallFlag);
+
+                if flip {
+                    builder = builder.with(Flipped::Horizontal);
+                }
             }
             GameMapTile::Floor => {
                 builder = builder.with(sprite_floor.clone());
@@ -652,7 +677,7 @@ impl Enemies {
                 .with(game_pos)
                 .with(transform)
                 .with(Transparent)
-                .with(CollisionDetectionFlag([45., 45.]))
+
                 .with(TimeLeft::new(get_enemy_time(floors.0)));
 
             use self::Enemies::*;
@@ -665,6 +690,7 @@ impl Enemies {
 
                     builder.with(EnemyFlag::new_stationary())
                         .with(sprite_render.clone())
+                        .with(CollisionDetectionFlag([60., 100.]))
                         .with(Shooter::new(2, get_enemy_bullet_speed(floors.0)))
                         .with(Animation::new(500, WALL_CLOCK_FRAMES))
                         .build();
@@ -676,6 +702,7 @@ impl Enemies {
                     };
                     builder.with(EnemyFlag::default())
                         .with(sprite_render.clone())
+                        .with(CollisionDetectionFlag([45., 45.]))
                         .build();
                 }
                 Full => {
@@ -685,6 +712,7 @@ impl Enemies {
                     };
                     builder.with(EnemyFlag::default())
                         .with(sprite_render.clone())
+                        .with(CollisionDetectionFlag([45., 45.]))
                         .with(Shooter::new(2, get_enemy_bullet_speed(floors.0))).build();
                 }
             }
@@ -835,5 +863,18 @@ pub const PLAYER_INVUL_FRAMES: &[usize] = &[20,21,22,23];
 pub const PROJ_POWER_FRAMES: &[usize] = &[24,25,26,27,28,29];
 pub const SHOOT_FAST_POWER_FRAMES: &[usize] = &[30,31,32,33,34,35];
 pub const SPEED_POWER_FRAMES: &[usize] = &[36,37,38,39,40,41];
-pub const WALL_CLOCK_FRAMES: &[usize] = &[44, 45, 46, 47, 48];
+pub const WALL_CLOCK_FRAMES: &[usize] = &[45, 46, 47, 48];
 pub const MOAR_TIME_FRAMES: &[usize] = &[11,11,12];
+
+
+fn get_wall_sprite_num((x,y): (usize, usize), gamemap: &GameMap) -> (usize, bool) {
+    if y - 1 != 0 && y - 1 < GAME_MAP_Y && gamemap.map[x][y-1] == GameMapTile::Floor {
+        (43, false)
+    } else if x + 1 < GAME_MAP_X && gamemap.map[x+1][y] == GameMapTile::Floor {
+        (42, false)
+    } else if x - 1 != 0 && x - 1 < GAME_MAP_X && gamemap.map[x-1][y] == GameMapTile::Floor {
+        (42, true)
+    } else {
+        (52, false)
+    }
+}

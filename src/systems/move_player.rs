@@ -101,14 +101,17 @@ impl<'a> System<'a> for MoveBadGuys {
 
         let player_pos = game_poses.get(player_ent.0.unwrap()).unwrap().clone();
 
-        for (_, pos, coll_flag) in (&enemy_flag, &mut game_poses, &coll_flags).join() {
-            let pos_diff = [player_pos.0[0] - pos.0[0], player_pos.0[1] - pos.0[1]];
-            let r = (pos_diff[0] * pos_diff[0] + pos_diff[1] * pos_diff[1]).sqrt();
+        for (enm_flag, pos, coll_flag) in (&enemy_flag, &mut game_poses, &coll_flags).join() {
+            if enm_flag.moves {
+                let pos_diff = [player_pos.0[0] - pos.0[0], player_pos.0[1] - pos.0[1]];
+                let r = (pos_diff[0] * pos_diff[0] + pos_diff[1] * pos_diff[1]).sqrt();
 
-            let speed = 2.;
+                let speed = 2.;
 
-            try_move(pos, 0, speed * pos_diff[0] / r, &game_map, coll_flag);
-            try_move(pos, 1, speed * pos_diff[1] / r, &game_map, coll_flag);
+                try_move(pos, 0, speed * pos_diff[0] / r, &game_map, coll_flag);
+                try_move(pos, 1, speed * pos_diff[1] / r, &game_map, coll_flag);
+            }
+
         }
     }
 }

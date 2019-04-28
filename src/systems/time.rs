@@ -7,6 +7,7 @@ use amethyst::ecs::{
 use amethyst::renderer::{SpriteRender, Transparent};
 use rand::{thread_rng, Rng};
 use std::time::Duration;
+use crate::audio::{AudioSystemData, play_enemy_die};
 
 pub struct DecrementTime;
 
@@ -60,6 +61,7 @@ impl<'a> System<'a> for RemoveOutOfTimeBadGuys {
         ReadStorage<'a, GamePosition>,
         ReadExpect<'a, LoadedSpriteSheet>,
         WriteExpect<'a, GameOver>,
+        AudioSystemData<'a>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -73,11 +75,13 @@ impl<'a> System<'a> for RemoveOutOfTimeBadGuys {
             game_poses,
             sprite_sheet,
             mut game_over,
+            audio,
         ) = data;
 
         let zero = Duration::from_secs(0);
         for (time, _, ent, game_pos) in (&time_left, &enemies, &entities, &game_poses).join() {
             if time.remainaing == zero {
+                play_enemy_die(&audio);
                 entities.delete(ent).unwrap();
                 num_enemies.0 -= 1;
 
