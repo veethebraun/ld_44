@@ -26,5 +26,12 @@
             width: 60,
             height: 60,
         ),
+        (
+            x: 0,
+            y: 107,
+            width: 10,
+            height: 10,
+        ),
+
     ],
 )

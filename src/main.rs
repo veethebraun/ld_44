@@ -22,6 +22,7 @@ use pausable_game_data::PausableGameDataBuilder;
 mod audio;
 mod pause_screen;
 use audio::Music;
+mod maps;
 mod systems;
 
 fn main() -> amethyst::Result<()> {
@@ -61,6 +62,13 @@ fn main() -> amethyst::Result<()> {
         .with_running(systems::MoveBadGuys,"move_bad_guys", &["move_player"])
         .with_running(systems::PlayerBadGuyCollide, "collide_bad_guys", &["move_bad_guys"])
         .with_running(systems::DecrementTime, "decrement_time", &[])
+        .with_running(systems::PlayerShoot, "player_shoot", &["move_player"])
+        .with_running(systems::EnemyShoot, "enemy_shoot", &["move_player"])
+        .with_running(systems::DecrementPlayerCoolDowns, "player_shoot_cooldowns", &["player_shoot"])
+        .with_running(systems::MoveBullets, "move_bullets", &["player_shoot"])
+        .with_running(systems::CheckBulletCollide, "bullet_collid", &["move_bullets"])
+        .with_running(systems::RemoveOutOfTimeBadGuys, "kill_baddies", &["bullet_collid","decrement_time"])
+        .with_running(systems::CheckForNextRoom, "next_room", &["kill_baddies"])
 //        .with_running(systems::PaddleSystem, "paddle_system", &["input_system"])
 //        .with_running(systems::MoveBallSystem, "move_ball", &[])
 //        .with_running(systems::SoundFxSystem, "sound_fx", &["input_system"]);

@@ -4,9 +4,17 @@
     "player_leftright": Emulated(pos: Key(D), neg: Key(A)),
   },
   actions: {
-    "hi": [
-        [Key(F), Key(G)],
-        [Key(U)],
+    "shoot_left": [
+        [Key(Left)],
+    ],
+    "shoot_right": [
+        [Key(Right)],
+    ],
+    "shoot_up": [
+        [Key(Up)],
+    ],
+    "shoot_down": [
+        [Key(Down)],
     ],
   },
 )
